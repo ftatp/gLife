@@ -102,7 +102,6 @@ int main(int argc, char* argv[])
     // HINT: YOU MAY NEED TO WRITE PTHREAD INVOKING CODES HERE
 
 	g_GameOfLifeGrid->dump();
-	// 1. next generation
 
 	for(int i = 0; i < nprocs; i++)
 		g_GameOfLifeGrid->next();
@@ -130,7 +129,6 @@ void GameOfLifeGrid::next(const int from, const int to)
 
 void GameOfLifeGrid::next()
 {
-	
 	// 1. Initialize Next Grid, Next Temp
 	int** next_Grid;
 	int** next_Temp;
