@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <string.h>
 
 #define LIVE 1
 #define DEAD 0
@@ -33,6 +34,7 @@ typedef struct{
 int** nextCompleteGrid;
 int** nextCompleteTemp;
 int rowSizes[100000000] = {0};
+int* thread_join_check_arr;
 
 //void init_next_Grid(int** next_Grid, int** next_Temp, int m_Rows, int m_Cols);
 
@@ -92,6 +94,7 @@ int main(int argc, char* argv[])
 	int quot, remain, gap;
 	int idx;
 	range* work_ranges;
+	int join_check_flag;
 
 	if (argc != 6) {
 		cout <<"Usage: " << argv[0] << " <input file> <nprocs> <# of generations> <width> <heigh>" << endl;
@@ -135,13 +138,14 @@ int main(int argc, char* argv[])
 	x = n_Cells - quot*nprocs;
 	y = nprocs - x;
 	
-	// 2. Repeat gen times
+	// 2. Make threads' variables   
+	threadID = (pthread_t*)malloc(nprocs * sizeof(pthread_t));
+	work_ranges = (range*)malloc(nprocs * sizeof(range));
+	thread_join_check_arr = (int*)malloc(nprocs * sizeof(int));
+	memset(thread_join_check_arr, 0, nprocs * sizeof(int));
+
+	// 3. Repeat gen times
 	for(int i = 0; i < gen; i++){
-
-		// 3. Make threads' variables   
-		threadID = (pthread_t*)malloc(nprocs * sizeof(pthread_t));
-		work_ranges = (range*)malloc(nprocs * sizeof(range));
-
 		int thread_start_idx = 0;
 		int thread_end_idx = 0;
 
@@ -163,22 +167,32 @@ int main(int argc, char* argv[])
 			work_ranges[tid].end = thread_end_idx;
 
 			rowSizes[tid] = thread_end_idx - thread_start_idx;
+			
+			thread_join_check_arr[tid] = 1;
 			pthread_create(&threadID[tid], NULL, workerThread, &work_ranges[tid]);
+			
 			//g_GameOfLifeGrid->next(tid, thread_start_idx, thread_end_idx);
-
 			//printf("id: %d, start: %d, end: %d\n", tid, thread_start_idx, thread_end_idx);
 		}
 
 		// 5. Synchronize threads
-		for(int tid; tid < nprocs; tid++)
-			pthread_join(threadID[tid], NULL);
+		while(1){
+			for(int tid = 0; tid < nprocs; tid++)
+				join_check_flag = join_check_flag || thread_join_check_arr[tid];
+
+			if(join_check_flag)
+				join_check_flag = 0;
+			else
+				break;
+		}
+		
+		//for(int tid; tid < nprocs; tid++)
+		//	pthread_join(threadID[tid], NULL);
 
 		// 6. Update m_Grid, m_Temp with nextCompleteGrid, nextCompleteTemp
 		g_GameOfLifeGrid->Update(nprocs);
 
 		// 7. free
-		free(threadID);
-		free(work_ranges);
 		for(int tid = 0; tid < nprocs; tid++){
 			free(nextCompleteGrid[tid]);
 			free(nextCompleteTemp[tid]);
@@ -191,10 +205,13 @@ int main(int argc, char* argv[])
 
 	}
 
+	free(threadID);
+	free(work_ranges);
+		
 	gettimeofday(&end_time, NULL);
 	timersub(&end_time, &start_time, &result_time);
 	
-	cout << "Execution Time: " << result_time.tv_sec <<  "s" << endl;
+	cout << "Execution Time: " << result_time.tv_sec << "." << result_time.tv_usec << "s" << endl;
 
 	inputFile.close();
 
@@ -208,11 +225,15 @@ void* workerThread(void *arg)
 	range* p_range;
 	
 	p_range = (range*) arg;
-	printf("id: %d, start: %d, end: %d\n", p_range->id, p_range->start, p_range->end);
+	//printf("id: %d, start: %d, end: %d\n", p_range->id, p_range->start, p_range->end);
 
 	g_GameOfLifeGrid->next(p_range->id, p_range->start, p_range->end);
 
-	pthread_exit(NULL);
+	//printf("id: %d exit\n\n", p_range->id);
+	
+	thread_join_check_arr[p_range->id] = 0;
+	//pthread_exit(NULL);
+	return (void*) &p_range->id;
 }
 
 //void init_next_Grid(int** next_Grid, int** next_Temp, int m_Rows, int m_Cols){
