@@ -29,6 +29,10 @@ typedef struct{
 	int end;
 }range;
 
+	
+int** nextCompleteGrid;
+int** nextCompleteTemp;
+int rowSizes[100000000] = {0};
 
 //void init_next_Grid(int** next_Grid, int** next_Temp, int m_Rows, int m_Cols);
 
@@ -38,7 +42,7 @@ public:
 	GameOfLifeGrid(int rows, int cols, int gen);
 
 	void next();
-	void next(const int from, const int to);
+	void next(const int id, const int from, const int to);
 	
 	int isLive(int rows, int cols) { return (m_Grid[rows][cols] ? LIVE: DEAD); }
 	int getNumOfNeighbors(int rows, int cols);
@@ -58,6 +62,7 @@ public:
 	int getCols() { return m_Cols; }
 	int getGens() { return m_Generations; }
 
+	void Update(int nprocs);
 
 private:
 	int** m_Grid;
@@ -85,7 +90,7 @@ int main(int argc, char* argv[])
 	int n_Cells_per_Thread;
 
 	int quot, remain, gap;
-
+	int idx;
 	range* work_ranges;
 
 	if (argc != 6) {
@@ -119,48 +124,77 @@ int main(int argc, char* argv[])
 
 	g_GameOfLifeGrid->dump();
 
-	for(int i = 0; i < gen; i++)
-		g_GameOfLifeGrid->next();
+//	for(int i = 0; i < gen; i++)
+//		g_GameOfLifeGrid->next();
 
-//	n_Cells = rows * cols;
-//	
-//	quot = n_Cells / nprocs;
-//	x = n_Cells - quot*nprocs;
-//	y = nprocs - x;
-//	
-////	threadID = (pthread_t*)malloc(nprocs * sizeof(pthread_t));
-//	work_ranges = (range*)malloc(nprocs * sizeof(range));
-////
-//	int thread_start_idx = 0;
-//	int thread_end_idx = 0;
-//	for(int tid = 0; tid < nprocs; tid++){
-//		thread_start_idx = thread_end_idx;
-//		if(tid < x)
-//			gap = quot + 1;
-//		else
-//			gap = quot;
-//		
-//		thread_end_idx += gap;
-//
-//		work_ranges[tid].id = tid;
-//		work_ranges[tid].start = thread_start_idx;
-//		work_ranges[tid].end = thread_end_idx;
-//
-//		//pthread_create(&threadID[tid], NULL, workerThread, &work_ranges[tid]);
-//		g_GameOfLifeGrid(thread_start_idx, thread_end_idx);
-//
-//
-//		//printf("id: %d, start: %d, end: %d\n", tid, thread_start_idx, thread_end_idx);
-//	}
-//
-//	for(int tid; tid < nprocs; tid++)
-//		pthread_join(threadID[tid], NULL);
-//
+
+	// 1. Calculate job number for each thread
+	n_Cells = rows * cols;
+	
+	quot = n_Cells / nprocs;
+	x = n_Cells - quot*nprocs;
+	y = nprocs - x;
+	
+	// 2. Repeat gen times
+	for(int i = 0; i < gen; i++){
+
+		// 3. Make threads' variables   
+		threadID = (pthread_t*)malloc(nprocs * sizeof(pthread_t));
+		work_ranges = (range*)malloc(nprocs * sizeof(range));
+
+		int thread_start_idx = 0;
+		int thread_end_idx = 0;
+
+		nextCompleteGrid = (int**)malloc(nprocs * sizeof(int*));
+		nextCompleteTemp = (int**)malloc(nprocs * sizeof(int*));
+
+		// 4. Make threads 
+		for(int tid = 0; tid < nprocs; tid++){
+			thread_start_idx = thread_end_idx;
+			if(tid < x)
+				gap = quot + 1;
+			else
+				gap = quot;
+			
+			thread_end_idx += gap;
+
+			work_ranges[tid].id = tid;
+			work_ranges[tid].start = thread_start_idx;
+			work_ranges[tid].end = thread_end_idx;
+
+			rowSizes[tid] = thread_end_idx - thread_start_idx;
+			pthread_create(&threadID[tid], NULL, workerThread, &work_ranges[tid]);
+			//g_GameOfLifeGrid->next(tid, thread_start_idx, thread_end_idx);
+
+			//printf("id: %d, start: %d, end: %d\n", tid, thread_start_idx, thread_end_idx);
+		}
+
+		// 5. Synchronize threads
+		for(int tid; tid < nprocs; tid++)
+			pthread_join(threadID[tid], NULL);
+
+		// 6. Update m_Grid, m_Temp with nextCompleteGrid, nextCompleteTemp
+		g_GameOfLifeGrid->Update(nprocs);
+
+		// 7. free
+		free(threadID);
+		free(work_ranges);
+		for(int tid = 0; tid < nprocs; tid++){
+			free(nextCompleteGrid[tid]);
+			free(nextCompleteTemp[tid]);
+		}
+		free(nextCompleteGrid);
+		free(nextCompleteTemp);
+
+		// 8. print
+		g_GameOfLifeGrid->dump();
+
+	}
+
 	gettimeofday(&end_time, NULL);
 	timersub(&end_time, &start_time, &result_time);
 	
 	cout << "Execution Time: " << result_time.tv_sec <<  "s" << endl;
-	//g_GameOfLifeGrid->dumpCoordinate();
 
 	inputFile.close();
 
@@ -176,7 +210,9 @@ void* workerThread(void *arg)
 	p_range = (range*) arg;
 	printf("id: %d, start: %d, end: %d\n", p_range->id, p_range->start, p_range->end);
 
-	g_GameOfLifeGrid->next(p_range->start, p_range->end);
+	g_GameOfLifeGrid->next(p_range->id, p_range->start, p_range->end);
+
+	pthread_exit(NULL);
 }
 
 //void init_next_Grid(int** next_Grid, int** next_Temp, int m_Rows, int m_Cols){
@@ -184,43 +220,61 @@ void* workerThread(void *arg)
 
 //}
 
-void GameOfLifeGrid::next(const int from, const int to)
-{
-	int** next_Grid;
-	int** next_Temp;
+void GameOfLifeGrid::Update(int nprocs){
+	int rowSize;
+	int idx = 0;
 
-	// 1. Initialize Next Grid, Next Temp
-	//init_next_Grid(next_Grid, next_Temp, m_Rows, m_Cols);
-	next_Grid = (int**)malloc(sizeof(int*) * (m_Rows));
+	for(int i = 0; i < nprocs ; i++){
+		rowSize = rowSizes[i];//sizeof(nextCompleteGrid[i]) / sizeof(int*);
+		for(int j = 0; j < rowSize; j++){
+			*(*(m_Grid) + idx) = nextCompleteGrid[i][j];
+			*(*(m_Temp) + idx) = nextCompleteTemp[i][j];
+			idx++;
+		}
+	}	
+}
+
+void GameOfLifeGrid::next(const int id, const int from, const int to){
+	int* next_Grid;
+	int* next_Temp;
+
+	int i, j;
+
+	next_Grid = (int*) malloc(sizeof(int) * (to - from));
 	if (next_Grid == NULL) 
 		cout << "1 Memory allocation error " << endl;
 
-	next_Temp = (int**)malloc(sizeof(int*) * (m_Rows));
+	next_Temp = (int*) malloc(sizeof(int) * (to - from));
 	if (next_Temp == NULL) 
-		cout << "2 Memory allocation error " << endl;
+		cout << "1 Memory allocation error " << endl;
 
 
-	next_Grid[0] = (int*)malloc(sizeof(int) * ((m_Rows) * (m_Cols)));
-	if (next_Grid[0] == NULL) 
-		cout << "3 Memory allocation error " << endl;
+	for(int idx = from; idx < to; idx++){
+		i = idx / m_Cols;
+		j = idx % m_Cols;
+		next_Temp[idx - from] = getNumOfNeighbors(i, j);
 
-	next_Temp[0] = (int*)malloc(sizeof(int) * ((m_Rows) * (m_Cols)));
-	if (next_Temp[0] == NULL) 
-		cout << "4 Memory allocation error " << endl;
-
-
-	for (int i=1; i< m_Rows; i++) {
-		next_Grid[i] = next_Grid[i-1] + m_Cols;
-		next_Temp[i] = next_Temp[i-1] + m_Cols;
-	}
-
-	for (int i=0; i < m_Rows; i++) {
-		for (int j=0; j < m_Cols; j++) {
-			next_Grid[i][j] = next_Temp[i][j] = 0;
+		//next Grid
+		if(m_Grid[i][j] == LIVE){
+			if(next_Temp[idx - from] == 2 || next_Temp[idx - from] == 3){
+				next_Grid[idx - from] = LIVE;
+			}
+			else{
+				next_Grid[idx - from] = DEAD;
+			}
+		}
+		else {
+			if(next_Temp[idx - from] == 3){
+				next_Grid[idx - from] = LIVE;
+			}
+			else{
+				next_Grid[idx - from] = DEAD;
+			}
 		}
 	}
 
-
+	nextCompleteGrid[id] = next_Grid;
+	nextCompleteTemp[id] = next_Temp;
 }
 
 void GameOfLifeGrid::next()
@@ -229,7 +283,6 @@ void GameOfLifeGrid::next()
 	int** next_Temp;
 
 	// 1. Initialize Next Grid, Next Temp
-	//init_next_Grid(next_Grid, next_Temp, m_Rows, m_Cols);
 	next_Grid = (int**)malloc(sizeof(int*) * (m_Rows));
 	if (next_Grid == NULL) 
 		cout << "1 Memory allocation error " << endl;
