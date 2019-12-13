@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
 		
 	gettimeofday(&end_time, NULL);
 	timersub(&end_time, &start_time, &result_time);
-	
+
 	cout << "Execution Time: " << result_time.tv_sec << "." << result_time.tv_usec << "s" << endl;
 
 	inputFile.close();

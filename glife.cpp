@@ -34,7 +34,7 @@ typedef struct{
 int** nextCompleteGrid;
 int** nextCompleteTemp;
 int colSizes[100000000] = {0};
-int* thread_join_check_arr;
+//int* thread_join_check_arr;
 
 //void init_next_Grid(int** next_Grid, int** next_Temp, int m_Rows, int m_Cols);
 
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
 
 			colSizes[tid] = thread_end_idx - thread_start_idx;
 			
-			thread_join_check_arr[tid] = 1;
+//			thread_join_check_arr[tid] = 1;
 			pthread_create(&threadID[tid], NULL, workerThread, &work_ranges[tid]);
 			
 			//g_GameOfLifeGrid->next(tid, thread_start_idx, thread_end_idx);
@@ -176,18 +176,18 @@ int main(int argc, char* argv[])
 		}
 
 		// 5. Synchronize threads
-		while(1){
-			for(int tid = 0; tid < nprocs; tid++)
-				join_check_flag = join_check_flag || thread_join_check_arr[tid];
-
-			if(join_check_flag)
-				join_check_flag = 0;
-			else
-				break;
-		}
+//		while(1){
+//			for(int tid = 0; tid < nprocs; tid++)
+//				join_check_flag = join_check_flag || thread_join_check_arr[tid];
+//
+//			if(join_check_flag)
+//				join_check_flag = 0;
+//			else
+//				break;
+//		}
 		
-		//for(int tid; tid < nprocs; tid++)
-		//	pthread_join(threadID[tid], NULL);
+		for(int tid = 0; tid < nprocs; tid++)
+			pthread_join(threadID[tid], NULL);
 
 		// 6. Update m_Grid, m_Temp with nextCompleteGrid, nextCompleteTemp
 		g_GameOfLifeGrid->Update(nprocs);
