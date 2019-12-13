@@ -31,10 +31,10 @@ typedef struct{
 }range;
 
 	
-int** nextCompleteGrid;
-int** nextCompleteTemp;
-int colSizes[100000000] = {0};
-int* thread_join_check_arr;
+//int** nextCompleteGrid;
+//int** nextCompleteTemp;
+//int colSizes[100000000] = {0};
+//int* thread_join_check_arr;
 
 //void init_next_Grid(int** next_Grid, int** next_Temp, int m_Rows, int m_Cols);
 
@@ -127,85 +127,85 @@ int main(int argc, char* argv[])
 
 	g_GameOfLifeGrid->dump();
 
-//	for(int i = 0; i < gen; i++)
-//		g_GameOfLifeGrid->next();
+	for(int i = 0; i < gen; i++)
+		g_GameOfLifeGrid->next();
 
 
-	// 1. Calculate job number for each thread
-	n_Cells = cols * rows;
-	
-	quot = n_Cells / nprocs;
-	x = n_Cells - quot*nprocs;
-	y = nprocs - x;
-	
-	// 2. Make threads' variables   
-	threadID = (pthread_t*)malloc(nprocs * sizeof(pthread_t));
-	work_ranges = (range*)malloc(nprocs * sizeof(range));
-	thread_join_check_arr = (int*)malloc(nprocs * sizeof(int));
-	memset(thread_join_check_arr, 0, nprocs * sizeof(int));
-
-	// 3. Repeat gen times
-	for(int i = 0; i < gen; i++){
-		int thread_start_idx = 0;
-		int thread_end_idx = 0;
-
-		nextCompleteGrid = (int**)malloc(nprocs * sizeof(int*));
-		nextCompleteTemp = (int**)malloc(nprocs * sizeof(int*));
-
-		// 4. Make threads 
-		for(int tid = 0; tid < nprocs; tid++){
-			thread_start_idx = thread_end_idx;
-			if(tid < x)
-				gap = quot + 1;
-			else
-				gap = quot;
-			
-			thread_end_idx += gap;
-
-			work_ranges[tid].id = tid;
-			work_ranges[tid].start = thread_start_idx;
-			work_ranges[tid].end = thread_end_idx;
-
-			colSizes[tid] = thread_end_idx - thread_start_idx;
-			
-			thread_join_check_arr[tid] = 1;
-			pthread_create(&threadID[tid], NULL, workerThread, &work_ranges[tid]);
-			
-			//g_GameOfLifeGrid->next(tid, thread_start_idx, thread_end_idx);
-			//printf("id: %d, start: %d, end: %d\n", tid, thread_start_idx, thread_end_idx);
-		}
-
-		// 5. Synchronize threads
-		while(1){
-			for(int tid = 0; tid < nprocs; tid++)
-				join_check_flag = join_check_flag || thread_join_check_arr[tid];
-
-			if(join_check_flag)
-				join_check_flag = 0;
-			else
-				break;
-		}
-		
-		//for(int tid; tid < nprocs; tid++)
-		//	pthread_join(threadID[tid], NULL);
-
-		// 6. Update m_Grid, m_Temp with nextCompleteGrid, nextCompleteTemp
-		g_GameOfLifeGrid->Update(nprocs);
-
-		// 7. free
-		for(int tid = 0; tid < nprocs; tid++){
-			free(nextCompleteGrid[tid]);
-			free(nextCompleteTemp[tid]);
-		}
-		free(nextCompleteGrid);
-		free(nextCompleteTemp);
-	}
-
+//	// 1. Calculate job number for each thread
+//	n_Cells = cols * rows;
+//	
+//	quot = n_Cells / nprocs;
+//	x = n_Cells - quot*nprocs;
+//	y = nprocs - x;
+//	
+//	// 2. Make threads' variables   
+////	threadID = (pthread_t*)malloc(nprocs * sizeof(pthread_t));
+////	work_ranges = (range*)malloc(nprocs * sizeof(range));
+////	thread_join_check_arr = (int*)malloc(nprocs * sizeof(int));
+////	memset(thread_join_check_arr, 0, nprocs * sizeof(int));
+//
+//	// 3. Repeat gen times
+//	for(int i = 0; i < gen; i++){
+//		int thread_start_idx = 0;
+//		int thread_end_idx = 0;
+//
+////		nextCompleteGrid = (int**)malloc(nprocs * sizeof(int*));
+////		nextCompleteTemp = (int**)malloc(nprocs * sizeof(int*));
+//
+//		// 4. Make threads 
+//		for(int tid = 0; tid < nprocs; tid++){
+//			thread_start_idx = thread_end_idx;
+//			if(tid < x)
+//				gap = quot + 1;
+//			else
+//				gap = quot;
+//			
+//			thread_end_idx += gap;
+//
+//			work_ranges[tid].id = tid;
+//			work_ranges[tid].start = thread_start_idx;
+//			work_ranges[tid].end = thread_end_idx;
+//
+//			colSizes[tid] = thread_end_idx - thread_start_idx;
+//			
+//			thread_join_check_arr[tid] = 1;
+//			//pthread_create(&threadID[tid], NULL, workerThread, &work_ranges[tid]);
+//			
+//			//g_GameOfLifeGrid->next(tid, thread_start_idx, thread_end_idx);
+//			//printf("id: %d, start: %d, end: %d\n", tid, thread_start_idx, thread_end_idx);
+//		}
+//
+//		// 5. Synchronize threads
+//		while(1){
+//			for(int tid = 0; tid < nprocs; tid++)
+//				join_check_flag = join_check_flag || thread_join_check_arr[tid];
+//
+//			if(join_check_flag)
+//				join_check_flag = 0;
+//			else
+//				break;
+//		}
+//
+//		//for(int tid; tid < nprocs; tid++)
+//		//	pthread_join(threadID[tid], NULL);
+//
+//		// 6. Update m_Grid, m_Temp with nextCompleteGrid, nextCompleteTemp
+//		g_GameOfLifeGrid->Update(nprocs);
+//
+//		// 7. free
+//		for(int tid = 0; tid < nprocs; tid++){
+//			free(nextCompleteGrid[tid]);
+//			free(nextCompleteTemp[tid]);
+//		}
+//		free(nextCompleteGrid);
+//		free(nextCompleteTemp);
+//	}
+//
 	// 8. print
 	g_GameOfLifeGrid->dump();
 
-	free(threadID);
-	free(work_ranges);
+//	free(threadID);
+//	free(work_ranges);
 		
 	gettimeofday(&end_time, NULL);
 	timersub(&end_time, &start_time, &result_time);
@@ -219,84 +219,84 @@ int main(int argc, char* argv[])
 }
 
 // HINT: YOU MAY NEED TO FILL OUT BELOW FUNCTIONS
-void* workerThread(void *arg)
-{
-	range* p_range;
-	
-	p_range = (range*) arg;
-	//printf("id: %d, start: %d, end: %d\n", p_range->id, p_range->start, p_range->end);
-
-	g_GameOfLifeGrid->next(p_range->id, p_range->start, p_range->end);
-
-	//printf("id: %d exit\n\n", p_range->id);
-	
-	thread_join_check_arr[p_range->id] = 0;
-	//pthread_exit(NULL);
-	return (void*) &p_range->id;
-}
+//void* workerThread(void *arg)
+//{
+//	range* p_range;
+//	
+//	p_range = (range*) arg;
+//	//printf("id: %d, start: %d, end: %d\n", p_range->id, p_range->start, p_range->end);
+//
+//	g_GameOfLifeGrid->next(p_range->id, p_range->start, p_range->end);
+//
+//	//printf("id: %d exit\n\n", p_range->id);
+//	
+//	//thread_join_check_arr[p_range->id] = 0;
+//	//pthread_exit(NULL);
+//	return (void*) &p_range->id;
+//}
 
 //void init_next_Grid(int** next_Grid, int** next_Temp, int m_Rows, int m_Cols){
 
 
 //}
 
-void GameOfLifeGrid::Update(int nprocs){
-	int colSize;
-	int idx = 0;
-
-	for(int i = 0; i < nprocs ; i++){
-		colSize = colSizes[i];//sizeof(nextCompleteGrid[i]) / sizeof(int*);
-		for(int j = 0; j < colSize; j++){
-			*(*(m_Grid) + idx) = nextCompleteGrid[i][j];
-			*(*(m_Temp) + idx) = nextCompleteTemp[i][j];
-			idx++;
-		}
-	}	
-}
-
-void GameOfLifeGrid::next(const int id, const int from, const int to){
-	int* next_Grid;
-	int* next_Temp;
-
-	int i, j;
-
-	next_Grid = (int*) malloc(sizeof(int) * (to - from));
-	if (next_Grid == NULL) 
-		cout << "1 Memory allocation error " << endl;
-
-	next_Temp = (int*) malloc(sizeof(int) * (to - from));
-	if (next_Temp == NULL) 
-		cout << "1 Memory allocation error " << endl;
-
-
-	for(int idx = from; idx < to; idx++){
-		i = idx / m_Rows;
-		j = idx % m_Rows;
-		next_Temp[idx - from] = getNumOfNeighbors(i, j);
-
-		//next Grid
-		if(m_Grid[i][j] == LIVE){
-			if(next_Temp[idx - from] == 2 || next_Temp[idx - from] == 3){
-				next_Grid[idx - from] = LIVE;
-			}
-			else{
-				next_Grid[idx - from] = DEAD;
-			}
-		}
-		else {
-			if(next_Temp[idx - from] == 3){
-				next_Grid[idx - from] = LIVE;
-			}
-			else{
-				next_Grid[idx - from] = DEAD;
-			}
-		}
-	}
-
-	nextCompleteGrid[id] = next_Grid;
-	nextCompleteTemp[id] = next_Temp;
-}
-
+//void GameOfLifeGrid::Update(int nprocs){
+//	int colSize;
+//	int idx = 0;
+//
+//	for(int i = 0; i < nprocs ; i++){
+//		colSize = colSizes[i];//sizeof(nextCompleteGrid[i]) / sizeof(int*);
+//		for(int j = 0; j < colSize; j++){
+//			*(*(m_Grid) + idx) = nextCompleteGrid[i][j];
+//			*(*(m_Temp) + idx) = nextCompleteTemp[i][j];
+//			idx++;
+//		}
+//	}	
+//}
+//
+//void GameOfLifeGrid::next(const int id, const int from, const int to){
+//	int* next_Grid;
+//	int* next_Temp;
+//
+//	int i, j;
+//
+//	next_Grid = (int*) malloc(sizeof(int) * (to - from));
+//	if (next_Grid == NULL) 
+//		cout << "1 Memory allocation error " << endl;
+//
+//	next_Temp = (int*) malloc(sizeof(int) * (to - from));
+//	if (next_Temp == NULL) 
+//		cout << "1 Memory allocation error " << endl;
+//
+//
+//	for(int idx = from; idx < to; idx++){
+//		i = idx / m_Rows;
+//		j = idx % m_Rows;
+//		next_Temp[idx - from] = getNumOfNeighbors(i, j);
+//
+//		//next Grid
+//		if(m_Grid[i][j] == LIVE){
+//			if(next_Temp[idx - from] == 2 || next_Temp[idx - from] == 3){
+//				next_Grid[idx - from] = LIVE;
+//			}
+//			else{
+//				next_Grid[idx - from] = DEAD;
+//			}
+//		}
+//		else {
+//			if(next_Temp[idx - from] == 3){
+//				next_Grid[idx - from] = LIVE;
+//			}
+//			else{
+//				next_Grid[idx - from] = DEAD;
+//			}
+//		}
+//	}
+//
+//	nextCompleteGrid[id] = next_Grid;
+//	nextCompleteTemp[id] = next_Temp;
+//}
+//
 void GameOfLifeGrid::next()
 {
 	int** next_Grid;
@@ -377,7 +377,7 @@ void GameOfLifeGrid::next()
 	}
 
 	// 5. print
-	dump();
+	//dump();
 }
 
 int GameOfLifeGrid::getNumOfNeighbors(int cols, int rows)
