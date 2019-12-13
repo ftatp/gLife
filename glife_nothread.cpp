@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 
     // HINT: YOU MAY NEED TO WRITE PTHREAD INVOKING CODES HERE
 
-	g_GameOfLifeGrid->dump();
+//	g_GameOfLifeGrid->dump();
 
 	for(int i = 0; i < gen; i++)
 		g_GameOfLifeGrid->next();
