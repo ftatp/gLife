@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 	int quot, remain, gap;
 	int idx;
 	range* work_ranges;
-	int join_check_flag;
+	//int join_check_flag;
 
 	if (argc != 6) {
 		cout <<"Usage: " << argv[0] << " <input file> <nprocs> <# of generations> <width> <heigh>" << endl;
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
 	threadID = (pthread_t*)malloc(nprocs * sizeof(pthread_t));
 	work_ranges = (range*)malloc(nprocs * sizeof(range));
 	//thread_join_check_arr = (int*)malloc(nprocs * sizeof(int));
-	memset(thread_join_check_arr, 0, nprocs * sizeof(int));
+	//memset(thread_join_check_arr, 0, nprocs * sizeof(int));
 
 	// 3. Repeat gen times
 	for(int i = 0; i < gen; i++){
